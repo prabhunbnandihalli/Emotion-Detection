@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>EmoSense — Image Detection</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#07080c;--card:#111420;--border:rgba(255,255,255,0.07);--border-hl:rgba(255,255,255,0.14);
+  --cyan:#00e5ff;--violet:#9d4edd;--lime:#b5ff2d;--coral:#ff5c5c;
+  --text-1:#eef0f8;--text-2:#8a8fa8;--text-3:#3e4258;
+  --font-d:'Syne',sans-serif;--font-b:'DM Sans',sans-serif;
+  --accent:var(--cyan);--accent-dim:rgba(0,229,255,.12);--accent-border:rgba(0,229,255,.2);
+}
+body{background:var(--bg);color:var(--text-1);font-family:var(--font-b);min-height:100vh;overflow-x:hidden}
+.grid-bg{position:fixed;inset:0;pointer-events:none;z-index:0;background-image:linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.018) 1px,transparent 1px);background-size:60px 60px;mask-image:radial-gradient(ellipse 90% 80% at 50% 0%,black 20%,transparent 100%)}
+.glow{position:fixed;border-radius:50%;filter:blur(110px);pointer-events:none;z-index:0}
+.glow-1{width:600px;height:600px;background:var(--cyan);opacity:.07;top:-200px;right:-100px}
+.glow-2{width:500px;height:500px;background:var(--violet);opacity:.06;bottom:-100px;left:-100px}
+
+/* ── Nav ───────────────────────────────────────── */
+.nav{
+  position:sticky;top:0;z-index:50;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 32px;
+  background:rgba(7,8,12,.85);backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--border);
+}
+.nav-left{display:flex;align-items:center;gap:10px}
+.nav-logo{display:flex;align-items:center;gap:8px;text-decoration:none;color:var(--text-1)}
+.nav-logo-icon{font-size:20px}
+.nav-logo-name{font-family:var(--font-d);font-size:15px;font-weight:800}
+.nav-sep{color:var(--text-3);font-size:13px;margin:0 4px}
+.nav-page{font-size:13px;color:var(--cyan);font-weight:500}
+
+.nav-right{display:flex;align-items:center;gap:8px}
+.nav-btn{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:7px 14px;border-radius:9px;border:1px solid var(--border);
+  background:rgba(255,255,255,.05);color:var(--text-2);
+  font-family:var(--font-b);font-size:13px;font-weight:500;
+  cursor:pointer;text-decoration:none;
+  transition:all .2s;
+}
+.nav-btn:hover{background:rgba(255,255,255,.1);color:var(--text-1);border-color:var(--border-hl)}
+.nav-btn-home{background:var(--accent-dim);border-color:var(--accent-border);color:var(--cyan)}
+.nav-btn-home:hover{background:rgba(0,229,255,.2)}
+
+/* ── Page layout ───────────────────────────────── */
+.wrapper{position:relative;z-index:1;max-width:860px;margin:0 auto;padding:48px 28px 80px}
+
+/* ── Page header ───────────────────────────────── */
+.page-header{margin-bottom:40px;animation:fade-up .6s ease both}
+@keyframes fade-up{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.page-badge{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:4px 12px;border-radius:999px;border:1px solid var(--accent-border);
+  background:var(--accent-dim);font-size:11px;font-weight:600;
+  text-transform:uppercase;letter-spacing:1px;color:var(--cyan);
+  margin-bottom:16px;
+}
+.page-title{font-family:var(--font-d);font-size:clamp(1.8rem,4vw,2.8rem);font-weight:800;letter-spacing:-1.5px}
+.page-title span{background:linear-gradient(120deg,#fff 30%,var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.page-desc{margin-top:10px;color:var(--text-2);font-size:14px;font-weight:300;line-height:1.7}
+
+/* ── Main card ─────────────────────────────────── */
+.card{
+  background:var(--card);border:1px solid var(--border);border-radius:22px;
+  padding:36px;position:relative;overflow:hidden;
+  animation:fade-up .6s .1s ease both;
+}
+.card::after{content:'';position:absolute;top:0;left:24px;right:24px;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.1),transparent)}
+.card-top-glow{position:absolute;top:-80px;right:-80px;width:200px;height:200px;border-radius:50%;background:var(--cyan);opacity:.05;pointer-events:none;filter:blur(40px)}
+
+/* ── Tabs ──────────────────────────────────────── */
+.tabs{display:flex;gap:4px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:11px;padding:4px;margin-bottom:28px}
+.tab-btn{flex:1;padding:9px 12px;border:none;background:transparent;cursor:pointer;border-radius:8px;color:var(--text-2);font-family:var(--font-b);font-size:13px;font-weight:500;transition:all .2s;white-space:nowrap}
+.tab-btn:hover{color:var(--text-1)}
+.tab-btn.active{background:rgba(0,229,255,.14);color:var(--cyan)}
+.tab-panel{display:none}.tab-panel.active{display:block}
+
+/* ── Drop zone ─────────────────────────────────── */
+.drop-zone{
+  border:2px dashed var(--border);border-radius:12px;padding:36px 20px;
+  text-align:center;cursor:pointer;transition:all .25s;position:relative;
+  background:rgba(255,255,255,.02);
+}
+.drop-zone:hover,.drop-zone.drag-over{border-color:var(--cyan);background:rgba(0,229,255,.04)}
+.drop-zone input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.drop-icon{font-size:38px;margin-bottom:12px}
+.drop-text{color:var(--text-2);font-size:14px}.drop-text strong{color:var(--text-1)}
+.drop-hint{font-size:11px;color:var(--text-3);margin-top:5px}
+
+/* ── Inputs ────────────────────────────────────── */
+.input-row{display:flex;gap:8px}
+.inp{flex:1;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:10px;color:var(--text-1);font-family:var(--font-b);font-size:14px;padding:12px 15px;outline:none;transition:border-color .2s}
+.inp::placeholder{color:var(--text-3)}.inp:focus{border-color:rgba(0,229,255,.4)}
+
+/* ── Buttons ───────────────────────────────────── */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:11px 20px;border:none;border-radius:10px;font-family:var(--font-b);font-size:14px;font-weight:500;cursor:pointer;transition:all .2s;white-space:nowrap}
+.btn-cyan{background:linear-gradient(135deg,var(--cyan),#0099bb);color:#000;font-weight:600}
+.btn-cyan:hover{filter:brightness(1.12);transform:translateY(-1px)}
+.btn-ghost{background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--text-1)}
+.btn-ghost:hover{background:rgba(255,255,255,.1)}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none!important;filter:none!important}
+.btn-full{width:100%;justify-content:center;margin-top:16px}
+
+/* ── Preview ───────────────────────────────────── */
+.preview-img{width:100%;max-height:220px;object-fit:cover;border-radius:10px;border:1px solid var(--border);margin-top:14px;display:none}
+
+/* ── Webcam ────────────────────────────────────── */
+.webcam-wrap{position:relative;border-radius:12px;overflow:hidden;background:#000;aspect-ratio:4/3}
+video{width:100%;height:100%;object-fit:cover;display:block}
+.webcam-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.65)}
+canvas{display:none}
+.webcam-controls{display:flex;gap:8px;margin-top:10px}
+
+/* ── Result ────────────────────────────────────── */
+.result-box{margin-top:24px;border-radius:12px;border:1px solid var(--border);overflow:hidden;animation:slide-up .35s ease}
+@keyframes slide-up{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.result-box.success{border-color:rgba(181,255,45,.2)}.result-box.error{border-color:rgba(255,92,92,.2)}
+.result-header{padding:14px 18px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border)}
+.result-box.success .result-header{background:rgba(181,255,45,.04)}.result-box.error .result-header{background:rgba(255,92,92,.05)}
+.emotion-badge{display:inline-flex;align-items:center;gap:8px;padding:5px 14px;border-radius:999px;font-family:var(--font-d);font-size:15px;font-weight:700;text-transform:capitalize}
+.badge-happy{background:rgba(255,214,0,.12);color:#ffd600;border:1px solid rgba(255,214,0,.25)}
+.badge-sad{background:rgba(100,149,237,.12);color:#87afff;border:1px solid rgba(100,149,237,.25)}
+.badge-angry{background:rgba(255,92,92,.12);color:var(--coral);border:1px solid rgba(255,92,92,.25)}
+.badge-neutral{background:rgba(138,143,168,.12);color:#b0b5ce;border:1px solid rgba(138,143,168,.25)}
+.badge-fearful{background:rgba(157,78,221,.12);color:#c47af5;border:1px solid rgba(157,78,221,.25)}
+.badge-disgusted{background:rgba(181,255,45,.12);color:var(--lime);border:1px solid rgba(181,255,45,.25)}
+.badge-surprised{background:rgba(0,229,255,.12);color:var(--cyan);border:1px solid rgba(0,229,255,.25)}
+.badge-error{background:rgba(255,92,92,.08);color:var(--coral);border:1px solid rgba(255,92,92,.25)}
+.conf-text{margin-left:auto;font-size:12px;color:var(--text-2)}
+.result-body{padding:16px 18px}
+.bars-title{font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--text-3);margin-bottom:12px}
+.emotion-row{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+.emotion-row-label{width:82px;font-size:12px;color:var(--text-2);text-transform:capitalize;flex-shrink:0}
+.bar-track{flex:1;height:6px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden}
+.bar-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--violet),var(--cyan));width:0;transition:width .8s cubic-bezier(.25,.46,.45,.94)}
+.emotion-row-pct{width:38px;font-size:12px;color:var(--text-3);text-align:right;flex-shrink:0}
+.error-msg{color:var(--coral);font-size:13px}
+.spinner{display:inline-block;width:15px;height:15px;border:2px solid rgba(0,0,0,.2);border-top-color:rgba(0,0,0,.8);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── AI Report ── */
+.report-box{margin-top:16px;border-radius:12px;border:1px solid rgba(0,229,255,.15);background:rgba(0,229,255,.04);overflow:hidden;animation:slide-up .4s ease}
+.report-header{padding:11px 16px;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(0,229,255,.1);background:rgba(0,229,255,.06)}
+.report-header-label{font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--cyan)}
+.report-body{padding:16px 18px;font-size:13.5px;line-height:1.8;color:var(--text-2)}
+.report-body strong{color:var(--text-1);font-weight:600}
+.report-section{margin-bottom:14px}.report-section:last-child{margin-bottom:0}
+.report-section-title{font-size:11px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--text-3);margin-bottom:7px}
+.report-tips{list-style:none;display:flex;flex-direction:column;gap:7px}
+.report-tips li{display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--text-2)}
+.report-tips li::before{content:'→';color:var(--cyan);flex-shrink:0;margin-top:2px}
+.report-section-gap{margin-top:14px;margin-bottom:5px}
+.report-body p{margin-bottom:8px;font-size:13.5px;color:var(--text-2);line-height:1.8}
+.report-body p:last-child{margin-bottom:0}
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+<div class="glow glow-1"></div>
+<div class="glow glow-2"></div>
+
+<nav class="nav">
+  <div class="nav-left">
+    <a class="nav-logo" href="index.html">
+      <span class="nav-logo-icon">🧠</span>
+      <span class="nav-logo-name">EmoSense</span>
+    </a>
+    <span class="nav-sep">/</span>
+    <span class="nav-page">📷 Image Detection</span>
+  </div>
+  <div class="nav-right">
+    <a class="nav-btn" href="history.html">🗂 History</a>
+    <button class="nav-btn" onclick="history.back()">← Go Back</button>
+    <a class="nav-btn nav-btn-home" href="index.html">🏠 Home</a>
+  </div>
+</nav>
+
+<div class="wrapper">
+  <div class="page-header">
+    <div class="page-badge">📷 Visual Analysis</div>
+    <h1 class="page-title"><span>Image Emotion</span> Detection</h1>
+    <p class="page-desc">Upload a photo, paste an image URL, or capture directly from your webcam — our AI will analyse the facial expression and return the detected emotion.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-top-glow"></div>
+
+    <div class="tabs" id="tabs">
+      <button class="tab-btn active" data-panel="panel-upload">📁 Upload File</button>
+      <button class="tab-btn"        data-panel="panel-url">🔗 Image URL</button>
+      <button class="tab-btn"        data-panel="panel-webcam">📸 Webcam</button>
+    </div>
+
+    <div class="tab-panel active" id="panel-upload">
+      <div class="drop-zone" id="dropZone">
+        <input type="file" id="imgFile" accept="image/jpeg,image/png,image/webp,image/bmp"/>
+        <div class="drop-icon">🖼️</div>
+        <div class="drop-text"><strong>Click to browse</strong> or drag &amp; drop an image</div>
+        <div class="drop-hint">Supports JPG · PNG · WEBP · BMP</div>
+      </div>
+      <img id="imgPreview" class="preview-img" alt="Preview"/>
+      <button class="btn btn-cyan btn-full" id="btnAnalyzeFile" disabled>Analyse Emotion</button>
+    </div>
+
+    <div class="tab-panel" id="panel-url">
+      <p style="font-size:13px;color:var(--text-2);margin-bottom:12px">Paste a direct link to any publicly accessible image.</p>
+      <div class="input-row">
+        <input class="inp" id="imgUrl" type="url" placeholder="https://example.com/portrait.jpg"/>
+        <button class="btn btn-cyan" id="btnAnalyzeUrl">Analyse</button>
+      </div>
+      <img id="imgUrlPreview" class="preview-img" alt="URL Preview"/>
+    </div>
+
+    <div class="tab-panel" id="panel-webcam">
+      <div class="webcam-wrap">
+        <video id="webcamVideo" autoplay playsinline muted></video>
+        <div class="webcam-overlay" id="webcamOverlay">
+          <button class="btn btn-cyan" id="btnStartWebcam">▶ Start Camera</button>
+        </div>
+      </div>
+      <div class="webcam-controls">
+        <button class="btn btn-ghost" id="btnStopWebcam" disabled style="flex:1">⏹ Stop Camera</button>
+        <button class="btn btn-cyan"  id="btnCapture"    disabled style="flex:1">📸 Capture &amp; Analyse</button>
+      </div>
+      <canvas id="captureCanvas"></canvas>
+    </div>
+
+    <div id="result"></div>
+    <div id="report"></div>
+  </div>
+</div>
+
+<script>
+const API = 'http://localhost:5000';
+const $ = id => document.getElementById(id);
+
+const EMOJI = {
+  happy:'😄', sad:'😢', angry:'😠', neutral:'😐', 
+  fear:'😨', fearful:'😨', disgust:'🤢', disgusted:'🤢', surprise:'😲', surprised:'😲'
+};
+
+function badgeClass(e) {
+  const map = {
+    happy:'badge-happy', sad:'badge-sad', angry:'badge-angry', neutral:'badge-neutral',
+    fear:'badge-fearful', fearful:'badge-fearful', disgust:'badge-disgusted', 
+    disgusted:'badge-disgusted', surprise:'badge-surprised', surprised:'badge-surprised'
+  };
+  return map[e.toLowerCase()] || 'badge-neutral';
+}
+
+/* ── Hardcoded Local Reports ── */
+const EMOTION_REPORTS = {
+  happy: {
+    summary: "A strong presence of joy and satisfaction was detected, indicating a positive and elevated state of mind.",
+    suggestions: [
+      "Share your positive energy with someone by sending a quick appreciation text.",
+      "Write down one thing that made you smile today to build a gratitude habit.",
+      "Channel this high energy into a creative project or a complex task you've been putting off."
+    ]
+  },
+  sad: {
+    summary: "Indicators of sorrow or low energy were detected, suggesting you might be feeling overwhelmed or down.",
+    suggestions: [
+      "Reach out to a trusted friend or family member just to hear their voice and connect.",
+      "Step outside for a short walk to get a change of scenery and fresh air.",
+      "Drink a glass of water and do a quick body scan to release any physical tension."
+    ]
+  },
+  angry: {
+    summary: "High levels of frustration or hostility were detected, showing that your fight-or-flight response is actively engaged.",
+    suggestions: [
+      "Step away from the immediate trigger and physically change your environment.",
+      "Do a short burst of intense physical activity to burn off adrenaline.",
+      "Try the 4-7-8 breathing method: inhale for 4 seconds, hold for 7, exhale for 8."
+    ]
+  },
+  neutral: {
+    summary: "A baseline, calm expression was detected, indicating an objective and unbothered emotional state.",
+    suggestions: [
+      "Use this calm state to tackle detailed, focus-intensive work or organization.",
+      "Do a quick posture check to ensure you aren't holding tension in your shoulders or jaw.",
+      "Plan out your schedule for tomorrow while your mind is clear and highly objective."
+    ]
+  },
+  fear: {
+    summary: "Signs of apprehension or anxiety were detected, suggesting you are feeling threatened or highly stressed.",
+    suggestions: [
+      "Move to a quiet, physically comfortable space where you feel secure and unbothered.",
+      "Name three objects you can see, two you can touch, and one you can hear to ground yourself.",
+      "Break down whatever is intimidating you into the absolute smallest next possible step."
+    ]
+  },
+  disgust: {
+    summary: "A strong aversion or discomfort was detected, indicating a physical or psychological rejection of something in your environment.",
+    suggestions: [
+      "Physically remove yourself or look away from the source of the discomfort.",
+      "Focus your attention on a pleasant sensory experience, like a comforting smell or a favorite song.",
+      "Splash cold water on your face to engage your mammalian dive reflex and quickly reset your nervous system."
+    ]
+  },
+  surprise: {
+    summary: "Signs of astonishment were detected, showing that your brain is actively processing unexpected information.",
+    suggestions: [
+      "Take a slow, deep breath to let your nervous system catch up to the new information.",
+      "Wait at least 5 minutes before making any immediate decisions or sending reactive messages.",
+      "Write down exactly what happened to help process the unexpected event logically."
+    ]
+  }
+};
+
+// Map aliases to the base objects
+EMOTION_REPORTS.fearful = EMOTION_REPORTS.fear;
+EMOTION_REPORTS.disgusted = EMOTION_REPORTS.disgust;
+EMOTION_REPORTS.surprised = EMOTION_REPORTS.surprise;
+
+/* ── Local Report Generation ── */
+function generateReport(emotion) {
+  const reportEl = $('report');
+  const normalizedEmotion = emotion.toLowerCase().trim();
+  let data = EMOTION_REPORTS[normalizedEmotion];
+  
+  if (!data) {
+    reportEl.innerHTML = ''; // Hide if no data
+    return;
+  }
+
+  const tipsHtml = data.suggestions.map(tip => `<li>${tip}</li>`).join('');
+
+  reportEl.innerHTML = `
+    <div class="report-box">
+      <div class="report-header">
+        <span>🧠</span>
+        <span class="report-header-label">AI Insight Report</span>
+      </div>
+      <div class="report-body">
+        <div class="report-section">
+          <div class="report-section-title">Summary</div>
+          <p>${data.summary}</p>
+        </div>
+        <div class="report-section-gap"></div>
+        <div class="report-section">
+          <div class="report-section-title">Actionable Suggestions</div>
+          <ul class="report-tips">
+            ${tipsHtml}
+          </ul>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* tabs */
+$('tabs').querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    $('tabs').querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.toggle('active',p.id===btn.dataset.panel));
+  });
+});
+
+function renderResult(data){
+  const el=$('result');
+  $('report').innerHTML='';
+  if(!data.success){
+    el.innerHTML=`<div class="result-box error"><div class="result-header"><span class="emotion-badge badge-error">⚠ Error</span></div><div class="result-body"><p class="error-msg">${data.error}</p></div></div>`;
+    return;
+  }
+  const{dominant_emotion:dom,confidence:conf,all_emotions:all}=data.result;
+  const bars=Object.entries(all).sort((a,b)=>b[1]-a[1]).map(([em,pct])=>`
+    <div class="emotion-row">
+      <span class="emotion-row-label">${em}</span>
+      <div class="bar-track"><div class="bar-fill" data-pct="${pct}" style="width:0"></div></div>
+      <span class="emotion-row-pct">${pct}%</span>
+    </div>`).join('');
+  el.innerHTML=`
+    <div class="result-box success">
+      <div class="result-header">
+        <span class="emotion-badge ${badgeClass(dom)}">${EMOJI[dom.toLowerCase()]||'❓'} ${dom}</span>
+        <span class="conf-text">Confidence: ${conf}%</span>
+      </div>
+      <div class="result-body">
+        <div class="bars-title">All Emotions</div>${bars}
+      </div>
+    </div>`;
+  requestAnimationFrame(()=>{el.querySelectorAll('.bar-fill').forEach(b=>b.style.width=b.dataset.pct+'%')});
+  
+  generateReport(dom);
+}
+
+function setLoading(btn,on,def){
+  btn.disabled=on;
+  btn.innerHTML=on?`<span class="spinner"></span> Analysing…`:def;
+}
+
+/* file upload */
+let imgFileObj=null;
+$('imgFile').addEventListener('change',e=>{
+  const f=e.target.files[0];if(!f)return;
+  imgFileObj=f;
+  const p=$('imgPreview');p.src=URL.createObjectURL(f);p.style.display='block';
+  $('btnAnalyzeFile').disabled=false;
+});
+const dz=$('dropZone');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag-over')});
+dz.addEventListener('dragleave',()=>dz.classList.remove('drag-over'));
+dz.addEventListener('drop',e=>{
+  e.preventDefault();dz.classList.remove('drag-over');
+  const f=e.dataTransfer.files[0];
+  if(f&&f.type.startsWith('image/')){imgFileObj=f;$('imgPreview').src=URL.createObjectURL(f);$('imgPreview').style.display='block';$('btnAnalyzeFile').disabled=false;}
+});
+$('btnAnalyzeFile').addEventListener('click',async()=>{
+  if(!imgFileObj)return;
+  const btn=$('btnAnalyzeFile');setLoading(btn,true);
+  const fd=new FormData();fd.append('file',imgFileObj);
+  try{const r=await fetch(`${API}/api/detect/image`,{method:'POST',body:fd});renderResult(await r.json());}
+  catch{renderResult({success:false,error:'Could not reach API. Is Flask running?'});}
+  setLoading(btn,false,'Analyse Emotion');
+});
+
+/* url */
+$('btnAnalyzeUrl').addEventListener('click',async()=>{
+  const url=$('imgUrl').value.trim();if(!url)return;
+  const btn=$('btnAnalyzeUrl');setLoading(btn,true);
+  const p=$('imgUrlPreview');p.src=url;p.style.display='block';p.onerror=()=>p.style.display='none';
+  try{const r=await fetch(`${API}/api/detect/image`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});renderResult(await r.json());}
+  catch{renderResult({success:false,error:'Could not reach API. Is Flask running?'});}
+  setLoading(btn,false,'Analyse');
+});
+$('imgUrl').addEventListener('keydown',e=>{if(e.key==='Enter')$('btnAnalyzeUrl').click()});
+
+/* webcam */
+let stream=null;
+$('btnStartWebcam').addEventListener('click',async()=>{
+  try{
+    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}});
+    $('webcamVideo').srcObject=stream;
+    $('webcamOverlay').style.display='none';
+    $('btnStopWebcam').disabled=false;$('btnCapture').disabled=false;
+  }catch{alert('Camera access denied or unavailable.');}
+});
+$('btnStopWebcam').addEventListener('click',()=>{
+  if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}
+  $('webcamVideo').srcObject=null;$('webcamOverlay').style.display='flex';
+  $('btnStopWebcam').disabled=true;$('btnCapture').disabled=true;
+});
+$('btnCapture').addEventListener('click',async()=>{
+  const v=$('webcamVideo'),c=$('captureCanvas');
+  c.width=v.videoWidth;c.height=v.videoHeight;
+  c.getContext('2d').drawImage(v,0,0);
+  const b64=c.toDataURL('image/jpeg',.9);
+  const btn=$('btnCapture');setLoading(btn,true);
+  try{const r=await fetch(`${API}/api/detect/image`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image:b64})});renderResult(await r.json());}
+  catch{renderResult({success:false,error:'Could not reach API. Is Flask running?'});}
+  setLoading(btn,false,'📸 Capture &amp; Analyse');
+});
+</script>
+</body>
+</html>

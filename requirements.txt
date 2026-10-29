@@ -1,0 +1,26 @@
+# flask==3.0.3
+# flask-cors==4.0.1
+# deepface==0.0.93
+# opencv-python-headless==4.9.0.80
+# librosa==0.10.2
+# numpy==1.26.4
+# tf-keras==2.16.0
+# requests==2.32.3
+# flask==3.0.3
+# flask-cors==4.0.1
+# deepface==0.0.93
+# opencv-python-headless==4.9.0.80
+# librosa==0.10.2
+# numpy==1.26.4
+# tf-keras==2.16.0
+# requests==2.32.3
+flask==3.0.3
+flask-cors==4.0.1
+deepface==0.0.93
+opencv-python-headless==4.9.0.80
+librosa==0.10.2
+numpy==1.26.4
+tf-keras==2.16.0
+requests==2.32.3
+pymongo==4.7.2
+anthropic>=0.25.0

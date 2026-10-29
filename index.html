@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>EmoSense — Home</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#07080c;--surface:#0d0f18;--card:#111420;
+  --border:rgba(255,255,255,0.07);--border-hl:rgba(255,255,255,0.14);
+  --cyan:#00e5ff;--violet:#9d4edd;--lime:#b5ff2d;
+  --text-1:#eef0f8;--text-2:#8a8fa8;--text-3:#3e4258;
+  --font-d:'Syne',sans-serif;--font-b:'DM Sans',sans-serif;
+}
+html,body{height:100%}
+body{
+  background:var(--bg);color:var(--text-1);font-family:var(--font-b);
+  min-height:100vh;overflow-x:hidden;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+}
+.grid-bg{
+  position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:linear-gradient(rgba(255,255,255,.022) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.022) 1px,transparent 1px);
+  background-size:60px 60px;
+  mask-image:radial-gradient(ellipse 80% 70% at 50% 50%,black 30%,transparent 100%);
+}
+.glow{position:fixed;border-radius:50%;filter:blur(110px);pointer-events:none;z-index:0}
+.glow-1{width:700px;height:700px;background:var(--violet);opacity:.09;top:-200px;left:-200px}
+.glow-2{width:600px;height:600px;background:var(--cyan);opacity:.08;bottom:-150px;right:-200px}
+.glow-3{width:400px;height:400px;background:var(--lime);opacity:.04;top:40%;left:55%}
+.page{
+  position:relative;z-index:1;max-width:780px;width:100%;
+  padding:60px 28px 80px;
+  display:flex;flex-direction:column;align-items:center;text-align:center;
+}
+.logo{
+  display:inline-flex;align-items:center;gap:10px;
+  background:linear-gradient(135deg,rgba(157,78,221,.25),rgba(0,229,255,.15));
+  border:1px solid rgba(0,229,255,.2);border-radius:16px;padding:11px 16px;margin-bottom:36px;
+  animation:logo-pulse 3s ease-in-out infinite;
+}
+@keyframes logo-pulse{0%,100%{box-shadow:0 0 0 rgba(0,229,255,0)}50%{box-shadow:0 0 30px rgba(0,229,255,.18)}}
+.logo-icon{font-size:26px;line-height:1}
+.logo-name{font-family:var(--font-d);font-size:17px;font-weight:800;letter-spacing:-.3px}
+h1{font-family:var(--font-d);font-size:clamp(2.6rem,6vw,4.4rem);font-weight:800;letter-spacing:-2.5px;line-height:1.02;animation:fade-up .7s ease both}
+.h1-line1{background:linear-gradient(120deg,#fff 40%,var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.h1-line2{background:linear-gradient(120deg,var(--violet) 10%,var(--cyan) 80%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+@keyframes fade-up{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+.tagline{margin-top:18px;color:var(--text-2);font-size:16px;font-weight:300;line-height:1.7;max-width:480px;letter-spacing:.15px;animation:fade-up .7s .15s ease both}
+.pill{
+  margin-top:22px;display:inline-flex;align-items:center;gap:7px;
+  padding:5px 13px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.04);
+  font-size:11.5px;color:var(--text-2);letter-spacing:.3px;animation:fade-up .7s .25s ease both;
+}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--text-3);transition:background .4s}
+.dot.on{background:#22c55e;box-shadow:0 0 6px #22c55e}
+.divider{width:48px;height:2px;margin:44px auto;background:linear-gradient(90deg,transparent,var(--border),transparent);animation:fade-up .7s .3s ease both}
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:20px;width:100%;animation:fade-up .7s .4s ease both}
+@media(max-width:580px){.cards{grid-template-columns:1fr}}
+.opt-card{
+  position:relative;overflow:hidden;background:var(--card);border:1px solid var(--border);border-radius:22px;
+  padding:36px 28px 30px;cursor:pointer;text-decoration:none;color:inherit;
+  display:flex;flex-direction:column;align-items:flex-start;
+  transition:border-color .25s,transform .25s,box-shadow .25s;text-align:left;
+}
+.opt-card:hover{transform:translateY(-5px);box-shadow:0 24px 60px rgba(0,0,0,.5)}
+.opt-card--image:hover{border-color:rgba(0,229,255,.35);box-shadow:0 24px 60px rgba(0,229,255,.08),0 0 0 1px rgba(0,229,255,.15)}
+.opt-card--audio:hover{border-color:rgba(157,78,221,.35);box-shadow:0 24px 60px rgba(157,78,221,.1),0 0 0 1px rgba(157,78,221,.15)}
+.opt-card::before{content:'';position:absolute;top:-60px;right:-60px;width:160px;height:160px;border-radius:50%;opacity:0;transition:opacity .3s;pointer-events:none}
+.opt-card--image::before{background:var(--cyan)}.opt-card--audio::before{background:var(--violet)}
+.opt-card:hover::before{opacity:.08}
+.opt-card::after{content:'';position:absolute;top:0;left:20px;right:20px;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.1),transparent)}
+.card-icon-wrap{width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:22px;flex-shrink:0}
+.opt-card--image .card-icon-wrap{background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.18)}
+.opt-card--audio .card-icon-wrap{background:rgba(157,78,221,.08);border:1px solid rgba(157,78,221,.18)}
+.card-label{font-size:10px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:8px}
+.opt-card--image .card-label{color:var(--cyan)}.opt-card--audio .card-label{color:#b07ef5}
+.card-title{font-family:var(--font-d);font-size:1.25rem;font-weight:700;letter-spacing:-.4px;margin-bottom:10px;line-height:1.2}
+.card-desc{font-size:13px;color:var(--text-2);line-height:1.65;font-weight:300}
+.card-arrow{margin-top:24px;display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:500;padding:7px 14px;border-radius:8px;transition:gap .2s,background .2s}
+.opt-card--image .card-arrow{background:rgba(0,229,255,.1);color:var(--cyan);border:1px solid rgba(0,229,255,.15)}
+.opt-card--audio .card-arrow{background:rgba(157,78,221,.1);color:#c47af5;border:1px solid rgba(157,78,221,.15)}
+.opt-card:hover .card-arrow{gap:10px}
+footer{margin-top:52px;color:var(--text-3);font-size:11.5px;letter-spacing:.3px;animation:fade-up .7s .55s ease both}
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+<div class="glow glow-1"></div>
+<div class="glow glow-2"></div>
+<div class="glow glow-3"></div>
+<main class="page">
+  <div class="logo">
+    <span class="logo-icon">🧠</span>
+    <span class="logo-name">EmoSense</span>
+  </div>
+  <h1>
+    <span class="h1-line1">Read emotions.</span><br/>
+    <span class="h1-line2">Instantly.</span>
+  </h1>
+  <p class="tagline">Upload a photo or speak into your mic — EmoSense analyses facial expressions and voice patterns to reveal the emotion behind the moment.</p>
+  <div class="pill">
+    <span class="dot" id="statusDot"></span>
+    <span id="statusText">Checking API…</span>
+  </div>
+  <div class="divider"></div>
+  <div class="cards">
+    <a class="opt-card opt-card--image" href="detect-image.html">
+      <div class="card-icon-wrap">📷</div>
+      <div class="card-label">Visual</div>
+      <div class="card-title">Image<br/>Detection</div>
+      <div class="card-desc">Upload a photo, paste a URL, or capture live from your webcam to detect facial emotion.</div>
+      <div class="card-arrow">Detect from image <span>→</span></div>
+    </a>
+    <a class="opt-card opt-card--audio" href="detect-audio.html">
+      <div class="card-icon-wrap">🎙️</div>
+      <div class="card-label">Vocal</div>
+      <div class="card-title">Audio<br/>Detection</div>
+      <div class="card-desc">Upload an audio file or record yourself live — AI analyses your voice to surface the emotion within.</div>
+      <div class="card-arrow">Detect from audio <span>→</span></div>
+    </a>
+  </div>
+  <footer>EmoSense · Powered by DeepFace &amp; Librosa · Flask API</footer>
+</main>
+<script>
+async function checkHealth(){
+  try{
+    const r=await fetch('http://localhost:5000/health',{signal:AbortSignal.timeout(3000)});
+    if(r.ok){document.getElementById('statusDot').classList.add('on');document.getElementById('statusText').textContent='API online — ready to detect';}
+    else throw 0;
+  }catch{document.getElementById('statusText').textContent='API offline — run: python app.py';}
+}
+checkHealth();
+</script>
+</body>
+</html>

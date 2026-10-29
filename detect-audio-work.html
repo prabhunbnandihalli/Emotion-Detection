@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>EmoSense — Audio Detection</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#07080c;--card:#111420;--border:rgba(255,255,255,0.07);--border-hl:rgba(255,255,255,0.14);
+  --cyan:#00e5ff;--violet:#9d4edd;--lime:#b5ff2d;--coral:#ff5c5c;
+  --text-1:#eef0f8;--text-2:#8a8fa8;--text-3:#3e4258;
+  --font-d:'Syne',sans-serif;--font-b:'DM Sans',sans-serif;
+  --accent:var(--violet);--accent-dim:rgba(157,78,221,.12);--accent-border:rgba(157,78,221,.22);
+}
+body{background:var(--bg);color:var(--text-1);font-family:var(--font-b);min-height:100vh;overflow-x:hidden}
+.grid-bg{position:fixed;inset:0;pointer-events:none;z-index:0;background-image:linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.018) 1px,transparent 1px);background-size:60px 60px;mask-image:radial-gradient(ellipse 90% 80% at 50% 0%,black 20%,transparent 100%)}
+.glow{position:fixed;border-radius:50%;filter:blur(110px);pointer-events:none;z-index:0}
+.glow-1{width:600px;height:600px;background:var(--violet);opacity:.09;top:-200px;left:-100px}
+.glow-2{width:500px;height:500px;background:var(--cyan);opacity:.06;bottom:-100px;right:-100px}
+
+/* ── Nav ── */
+.nav{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;padding:16px 32px;background:rgba(7,8,12,.85);backdrop-filter:blur(16px);border-bottom:1px solid var(--border)}
+.nav-left{display:flex;align-items:center;gap:10px}
+.nav-logo{display:flex;align-items:center;gap:8px;text-decoration:none;color:var(--text-1)}
+.nav-logo-icon{font-size:20px}.nav-logo-name{font-family:var(--font-d);font-size:15px;font-weight:800}
+.nav-sep{color:var(--text-3);font-size:13px;margin:0 4px}
+.nav-page{font-size:13px;color:#c47af5;font-weight:500}
+.nav-right{display:flex;align-items:center;gap:8px}
+.nav-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:9px;border:1px solid var(--border);background:rgba(255,255,255,.05);color:var(--text-2);font-family:var(--font-b);font-size:13px;font-weight:500;cursor:pointer;text-decoration:none;transition:all .2s}
+.nav-btn:hover{background:rgba(255,255,255,.1);color:var(--text-1);border-color:var(--border-hl)}
+.nav-btn-home{background:var(--accent-dim);border-color:var(--accent-border);color:#c47af5}
+.nav-btn-home:hover{background:rgba(157,78,221,.2)}
+
+/* ── Layout ── */
+.wrapper{position:relative;z-index:1;max-width:860px;margin:0 auto;padding:48px 28px 80px}
+.page-header{margin-bottom:40px;animation:fade-up .6s ease both}
+@keyframes fade-up{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.page-badge{display:inline-flex;align-items:center;gap:7px;padding:4px 12px;border-radius:999px;border:1px solid var(--accent-border);background:var(--accent-dim);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:#c47af5;margin-bottom:16px}
+.page-title{font-family:var(--font-d);font-size:clamp(1.8rem,4vw,2.8rem);font-weight:800;letter-spacing:-1.5px}
+.page-title span{background:linear-gradient(120deg,#fff 30%,var(--violet));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.page-desc{margin-top:10px;color:var(--text-2);font-size:14px;font-weight:300;line-height:1.7}
+.card{background:var(--card);border:1px solid var(--border);border-radius:22px;padding:36px;position:relative;overflow:hidden;animation:fade-up .6s .1s ease both}
+.card::after{content:'';position:absolute;top:0;left:24px;right:24px;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.1),transparent)}
+.card-top-glow{position:absolute;top:-80px;right:-80px;width:200px;height:200px;border-radius:50%;background:var(--violet);opacity:.05;pointer-events:none;filter:blur(40px)}
+
+/* ── Tabs ── */
+.tabs{display:flex;gap:4px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:11px;padding:4px;margin-bottom:28px}
+.tab-btn{flex:1;padding:9px 12px;border:none;background:transparent;cursor:pointer;border-radius:8px;color:var(--text-2);font-family:var(--font-b);font-size:13px;font-weight:500;transition:all .2s;white-space:nowrap}
+.tab-btn:hover{color:var(--text-1)}.tab-btn.active{background:rgba(157,78,221,.15);color:#c47af5}
+.tab-panel{display:none}.tab-panel.active{display:block}
+
+/* ── Drop zone ── */
+.drop-zone{border:2px dashed var(--border);border-radius:12px;padding:36px 20px;text-align:center;cursor:pointer;transition:all .25s;position:relative;background:rgba(255,255,255,.02)}
+.drop-zone:hover,.drop-zone.drag-over{border-color:var(--violet);background:rgba(157,78,221,.04)}
+.drop-zone input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.drop-icon{font-size:38px;margin-bottom:12px}.drop-text{color:var(--text-2);font-size:14px}.drop-text strong{color:var(--text-1)}.drop-hint{font-size:11px;color:var(--text-3);margin-top:5px}
+audio{width:100%;margin-top:14px;border-radius:8px}
+
+/* ── Buttons ── */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:11px 20px;border:none;border-radius:10px;font-family:var(--font-b);font-size:14px;font-weight:500;cursor:pointer;transition:all .2s;white-space:nowrap}
+.btn-violet{background:linear-gradient(135deg,var(--violet),#6a2dab);color:#fff;font-weight:600}
+.btn-violet:hover{filter:brightness(1.18);transform:translateY(-1px)}
+.btn-ghost{background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--text-1)}
+.btn-ghost:hover{background:rgba(255,255,255,.1)}
+.btn-danger{background:rgba(255,92,92,.12);border:1px solid rgba(255,92,92,.28);color:var(--coral)}
+.btn-danger:hover{background:rgba(255,92,92,.22)}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none!important;filter:none!important}
+.btn-full{width:100%;justify-content:center;margin-top:16px}
+.btn-row{display:flex;gap:8px}
+
+/* ── Recording UI ── */
+.rec-stage{
+  background:rgba(0,0,0,.35);border:1px solid var(--border);border-radius:14px;
+  padding:28px 20px;text-align:center;margin-bottom:16px;
+}
+.rec-vis{display:flex;align-items:center;justify-content:center;gap:3px;height:48px;margin-bottom:14px}
+.rec-bar{width:4px;border-radius:3px;background:var(--violet);height:8px;opacity:.25;transition:opacity .1s}
+.rec-bar.live{opacity:1;animation:bar-dance .55s ease-in-out infinite alternate}
+@keyframes bar-dance{from{transform:scaleY(.25)}to{transform:scaleY(1.4)}}
+.rec-timer{font-family:var(--font-d);font-size:3rem;font-weight:700;letter-spacing:-2px;line-height:1;color:var(--text-1)}
+.rec-state{margin-top:8px;font-size:12px;color:var(--text-3);display:flex;align-items:center;justify-content:center;gap:6px}
+.rec-dot{width:7px;height:7px;border-radius:50%;background:var(--coral);display:none;animation:blink 1s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+
+/* ── Result ── */
+.result-box{margin-top:24px;border-radius:12px;border:1px solid var(--border);overflow:hidden;animation:slide-up .35s ease}
+@keyframes slide-up{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.result-box.success{border-color:rgba(181,255,45,.2)}.result-box.error{border-color:rgba(255,92,92,.2)}
+.result-header{padding:14px 18px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border)}
+.result-box.success .result-header{background:rgba(181,255,45,.04)}.result-box.error .result-header{background:rgba(255,92,92,.05)}
+.emotion-badge{display:inline-flex;align-items:center;gap:8px;padding:5px 14px;border-radius:999px;font-family:var(--font-d);font-size:15px;font-weight:700;text-transform:capitalize}
+.badge-happy{background:rgba(255,214,0,.12);color:#ffd600;border:1px solid rgba(255,214,0,.25)}
+.badge-sad{background:rgba(100,149,237,.12);color:#87afff;border:1px solid rgba(100,149,237,.25)}
+.badge-angry{background:rgba(255,92,92,.12);color:var(--coral);border:1px solid rgba(255,92,92,.25)}
+.badge-neutral{background:rgba(138,143,168,.12);color:#b0b5ce;border:1px solid rgba(138,143,168,.25)}
+.badge-fearful{background:rgba(157,78,221,.12);color:#c47af5;border:1px solid rgba(157,78,221,.25)}
+.badge-disgusted{background:rgba(181,255,45,.12);color:var(--lime);border:1px solid rgba(181,255,45,.25)}
+.badge-surprised{background:rgba(0,229,255,.12);color:var(--cyan);border:1px solid rgba(0,229,255,.25)}
+.badge-error{background:rgba(255,92,92,.08);color:var(--coral);border:1px solid rgba(255,92,92,.25)}
+.conf-text{margin-left:auto;font-size:12px;color:var(--text-2)}
+.result-body{padding:16px 18px}
+.bars-title{font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--text-3);margin-bottom:12px}
+.emotion-row{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+.emotion-row-label{width:82px;font-size:12px;color:var(--text-2);text-transform:capitalize;flex-shrink:0}
+.bar-track{flex:1;height:6px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden}
+.bar-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--cyan),var(--violet));width:0;transition:width .8s cubic-bezier(.25,.46,.45,.94)}
+.emotion-row-pct{width:38px;font-size:12px;color:var(--text-3);text-align:right;flex-shrink:0}
+.error-msg{color:var(--coral);font-size:13px}
+.spinner{display:inline-block;width:15px;height:15px;border:2px solid rgba(255,255,255,.15);border-top-color:var(--text-1);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* ── AI Report ── */
+.report-box{margin-top:16px;border-radius:12px;border:1px solid rgba(157,78,221,.2);background:rgba(157,78,221,.04);overflow:hidden;animation:slide-up .4s ease}
+.report-header{padding:11px 16px;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(157,78,221,.15);background:rgba(157,78,221,.07)}
+.report-header-label{font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:#c47af5}
+.report-body{padding:16px 18px;font-size:13.5px;line-height:1.8;color:var(--text-2)}
+.report-body strong{color:var(--text-1);font-weight:600}
+.report-section{margin-bottom:14px}.report-section:last-child{margin-bottom:0}
+.report-section-title{font-size:11px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--text-3);margin-bottom:7px}
+.report-tips{list-style:none;display:flex;flex-direction:column;gap:7px}
+.report-tips li{display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--text-2)}
+.report-tips li::before{content:'→';color:#c47af5;flex-shrink:0;margin-top:2px}
+.report-streaming{color:var(--text-3);font-style:italic;font-size:13px;padding:16px 18px}
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+<div class="glow glow-1"></div>
+<div class="glow glow-2"></div>
+
+<!-- ── Nav ── -->
+<nav class="nav">
+  <div class="nav-left">
+    <a class="nav-logo" href="index.html">
+      <span class="nav-logo-icon">🧠</span>
+      <span class="nav-logo-name">EmoSense</span>
+    </a>
+    <span class="nav-sep">/</span>
+    <span class="nav-page">🎙️ Audio Detection</span>
+  </div>
+  <div class="nav-right">
+    <a class="nav-btn" href="history.html">🗂 History</a>
+    <button class="nav-btn" onclick="history.back()">← Go Back</button>
+    <a class="nav-btn nav-btn-home" href="index.html">🏠 Home</a>
+  </div>
+</nav>
+
+<div class="wrapper">
+
+  <!-- Page header -->
+  <div class="page-header">
+    <div class="page-badge">🎙️ Vocal Analysis</div>
+    <h1 class="page-title"><span>Audio Emotion</span> Detection</h1>
+    <p class="page-desc">Upload a pre-recorded audio file or record yourself live using your microphone — our AI analyses vocal features like pitch, energy, and tone to detect the emotion in your voice.</p>
+  </div>
+
+  <!-- Main card -->
+  <div class="card">
+    <div class="card-top-glow"></div>
+
+    <!-- Tabs -->
+    <div class="tabs" id="tabs">
+      <button class="tab-btn active" data-panel="panel-upload">📁 Upload File</button>
+      <button class="tab-btn"        data-panel="panel-record">🎤 Record Live</button>
+    </div>
+
+    <!-- Upload -->
+    <div class="tab-panel active" id="panel-upload">
+      <div class="drop-zone" id="dropZone">
+        <input type="file" id="audFile" accept="audio/wav,audio/mpeg,audio/ogg,audio/webm,audio/mp4"/>
+        <div class="drop-icon">🎵</div>
+        <div class="drop-text"><strong>Click to browse</strong> or drag &amp; drop an audio file</div>
+        <div class="drop-hint">Supports WAV · MP3 · OGG · WEBM</div>
+      </div>
+      <audio id="audPreview" controls style="display:none"></audio>
+      <button class="btn btn-violet btn-full" id="btnAnalyzeAudio" disabled>Analyse Emotion</button>
+    </div>
+
+    <!-- Record -->
+    <div class="tab-panel" id="panel-record">
+      <!-- Visualiser stage -->
+      <div class="rec-stage">
+        <div class="rec-vis" id="recVis"></div>
+        <div class="rec-timer" id="recTimer">0:00</div>
+        <div class="rec-state">
+          <span class="rec-dot" id="recDot"></span>
+          <span id="recState">Ready to record</span>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-violet" id="btnRecord" style="flex:1">⏺ Start Recording</button>
+        <button class="btn btn-danger" id="btnStop"   style="flex:1" disabled>⏹ Stop</button>
+      </div>
+      <audio id="recPreview" controls style="display:none;margin-top:14px"></audio>
+      <button class="btn btn-violet btn-full" id="btnAnalyzeRec" disabled>Analyse Recorded Audio</button>
+    </div>
+
+    <!-- Result -->
+    <div id="result"></div>
+    <div id="report"></div>
+  </div>
+</div>
+
+<script>
+const API='http://localhost:5000';
+const $=id=>document.getElementById(id);
+
+/* tabs */
+$('tabs').querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    $('tabs').querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.toggle('active',p.id===btn.dataset.panel));
+  });
+});
+
+/* result render */
+const EMOJI={happy:'😄',sad:'😢',angry:'😠',neutral:'😐',fearful:'😨',disgusted:'🤢',surprised:'😲'};
+function badgeClass(e){return({happy:'badge-happy',sad:'badge-sad',angry:'badge-angry',neutral:'badge-neutral',fearful:'badge-fearful',disgusted:'badge-disgusted',surprised:'badge-surprised'}[e]||'badge-neutral')}
+
+const REPORT_DATA = {
+  happy:     { summary:"Your voice carries warmth and positive energy — the vocal patterns reflect genuine happiness and high spirits.", tips:["Share your good mood — call or message someone you care about","Record a voice note to capture this moment for later","Use this energised state to do something you've been putting off","Laughter and singing reinforce positive emotions — lean into it"] },
+  sad:       { summary:"Your voice reflects emotional heaviness — lower energy and slower pace are common signs of sadness in vocal patterns.", tips:["Talk to someone you trust — speaking out loud helps process feelings","Put on music that resonates with or gently lifts your mood","Write down your thoughts — journaling is a proven emotional outlet","Be kind to yourself — rest is valid, and feelings pass in time"] },
+  angry:     { summary:"Your voice shows heightened tension — elevated energy and sharp vocal patterns are associated with frustration or anger.", tips:["Step away and take 5 slow, deep breaths before responding","Lower your voice consciously — it signals calm to your nervous system","Write down what's frustrating you rather than venting out loud","A brisk walk or workout can channel this energy constructively"] },
+  neutral:   { summary:"Your voice is steady and composed — neutral vocal patterns suggest a calm, focused state with no strong emotional signal.", tips:["A neutral state is ideal for focused work or important decisions","Use this clarity to plan, organise, or learn something new","Check in with yourself — sometimes neutral masks underlying stress","Mindfulness or a short meditation can deepen this calm state"] },
+  fearful:   { summary:"Your voice shows signs of anxiety or unease — trembling pitch and reduced energy are common fear and worry indicators.", tips:["Ground yourself: name 5 things you can see, 4 you can touch","Slow your breathing — inhale 4s, hold 4s, exhale 4s, repeat","Remind yourself that most feared outcomes don't materialise","Talk to someone you trust about what's causing the worry"] },
+  disgusted: { summary:"Your vocal tone reflects strong aversion or discomfort — disgust often comes through in tone and rhythm before we realise it.", tips:["Remove yourself from whatever is triggering the feeling","Identify whether the discomfort is physical or emotional","Give yourself space before re-engaging with the situation","Trust this signal — disgust can be a healthy boundary response"] },
+  surprised: { summary:"Your voice shows a sudden reaction — elevated pitch and rapid shifts in energy are hallmarks of surprise in vocal patterns.", tips:["Pause before responding — let the moment settle first","Surprise often signals something new worth exploring or learning","If it's positive, take a moment to fully absorb and enjoy it","If negative, breathe first and assess calmly before reacting"] },
+};
+
+function generateReport(emotion, confidence, allEmotions) {
+  const reportEl = $('report');
+  const data = REPORT_DATA[emotion] || { summary:`Detected emotion: ${emotion}.`, tips:["Reflect on how you feel right now.","Consider talking to someone you trust."] };
+  const secondEmotion = Object.entries(allEmotions).sort((a,b)=>b[1]-a[1]).find(([e])=>e!==emotion);
+  const tipsHtml = data.tips.map(t=>`<li>${t}</li>`).join('');
+  const blendNote = secondEmotion && secondEmotion[1] > 15
+    ? `<div class="report-section"><div class="report-section-title">Vocal Blend</div><p>A secondary presence of <strong>${secondEmotion[0]}</strong> (${secondEmotion[1]}%) was also detected, suggesting a mixed emotional state in your voice.</p></div>`
+    : '';
+  reportEl.innerHTML = `
+    <div class="report-box">
+      <div class="report-header"><span>🎙️</span><span class="report-header-label">AI Vocal Insight Report</span></div>
+      <div class="report-body">
+        <div class="report-section">
+          <div class="report-section-title">Summary</div>
+          <p>${data.summary} Confidence: <strong>${confidence}%</strong>.</p>
+        </div>
+        ${blendNote}
+        <div class="report-section">
+          <div class="report-section-title">Suggestions</div>
+          <ul class="report-tips">${tipsHtml}</ul>
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderResult(data){
+  const el=$('result');
+  $('report').innerHTML='';
+  if(!data.success){
+    el.innerHTML=`<div class="result-box error"><div class="result-header"><span class="emotion-badge badge-error">⚠ Error</span></div><div class="result-body"><p class="error-msg">${data.error}</p></div></div>`;
+    return;
+  }
+  const{dominant_emotion:dom,confidence:conf,all_emotions:all}=data.result;
+  const bars=Object.entries(all).sort((a,b)=>b[1]-a[1]).map(([em,pct])=>`
+    <div class="emotion-row">
+      <span class="emotion-row-label">${em}</span>
+      <div class="bar-track"><div class="bar-fill" data-pct="${pct}" style="width:0"></div></div>
+      <span class="emotion-row-pct">${pct}%</span>
+    </div>`).join('');
+  el.innerHTML=`
+    <div class="result-box success">
+      <div class="result-header">
+        <span class="emotion-badge ${badgeClass(dom)}">${EMOJI[dom]||'❓'} ${dom}</span>
+        <span class="conf-text">Confidence: ${conf}%</span>
+      </div>
+      <div class="result-body">
+        <div class="bars-title">All Emotions</div>${bars}
+      </div>
+    </div>`;
+  requestAnimationFrame(()=>{el.querySelectorAll('.bar-fill').forEach(b=>b.style.width=b.dataset.pct+'%')});
+}
+function setLoading(btn,on,def){btn.disabled=on;btn.innerHTML=on?`<span class="spinner"></span> Analysing…`:def;}
+
+/* ── File Upload ── */
+let audFileObj=null;
+$('audFile').addEventListener('change',e=>{
+  const f=e.target.files[0];if(!f)return;
+  audFileObj=f;$('audPreview').src=URL.createObjectURL(f);$('audPreview').style.display='block';
+  $('btnAnalyzeAudio').disabled=false;
+});
+const dz=$('dropZone');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag-over')});
+dz.addEventListener('dragleave',()=>dz.classList.remove('drag-over'));
+dz.addEventListener('drop',e=>{
+  e.preventDefault();dz.classList.remove('drag-over');
+  const f=e.dataTransfer.files[0];
+  if(f&&f.type.startsWith('audio/')){audFileObj=f;$('audPreview').src=URL.createObjectURL(f);$('audPreview').style.display='block';$('btnAnalyzeAudio').disabled=false;}
+});
+$('btnAnalyzeAudio').addEventListener('click',async()=>{
+  if(!audFileObj)return;
+  const btn=$('btnAnalyzeAudio');setLoading(btn,true);
+  const fd=new FormData();fd.append('file',audFileObj);
+  try{const r=await fetch(`${API}/api/detect/audio`,{method:'POST',body:fd});renderResult(await r.json());}
+  catch{renderResult({success:false,error:'Could not reach API. Is Flask running?'});}
+  setLoading(btn,false,'Analyse Emotion');
+});
+
+/* ── Live Recording ── */
+// Build bars
+const vis=$('recVis');
+const BAR_N=24;
+for(let i=0;i<BAR_N;i++){const b=document.createElement('div');b.className='rec-bar';vis.appendChild(b);}
+
+let mediaRec=null,chunks=[],recSec=0,recInterval=null,recBlob=null;
+let audioCtx=null,analyser=null,animFrame=null;
+
+function stopAnim(){
+  if(animFrame)cancelAnimationFrame(animFrame);
+  vis.querySelectorAll('.rec-bar').forEach(b=>{b.classList.remove('live');b.style.height='8px'});
+}
+function startAnim(an){
+  const data=new Uint8Array(an.frequencyBinCount);
+  const bars=[...vis.querySelectorAll('.rec-bar')];
+  function draw(){
+    animFrame=requestAnimationFrame(draw);
+    an.getByteFrequencyData(data);
+    bars.forEach((b,i)=>{
+      const idx=Math.floor(i*data.length/BAR_N);
+      b.style.height=Math.max(4,(data[idx]/255)*48)+'px';
+    });
+  }
+  bars.forEach(b=>b.classList.add('live'));draw();
+}
+
+$('btnRecord').addEventListener('click',async()=>{
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+    const src=audioCtx.createMediaStreamSource(stream);
+    analyser=audioCtx.createAnalyser();analyser.fftSize=64;
+    src.connect(analyser);startAnim(analyser);
+
+    mediaRec=new MediaRecorder(stream);chunks=[];
+    mediaRec.ondataavailable=e=>{if(e.data.size>0)chunks.push(e.data)};
+    mediaRec.onstop=()=>{
+      recBlob=new Blob(chunks,{type:'audio/webm'});
+      $('recPreview').src=URL.createObjectURL(recBlob);$('recPreview').style.display='block';
+      $('btnAnalyzeRec').disabled=false;
+      $('recState').textContent='Recording complete — ready to analyse';
+      $('recDot').style.display='none';
+      stopAnim();clearInterval(recInterval);
+      if(audioCtx)audioCtx.close();
+    };
+    mediaRec.start(100);
+    recSec=0;$('recTimer').textContent='0:00';
+    recInterval=setInterval(()=>{recSec++;const m=Math.floor(recSec/60),s=String(recSec%60).padStart(2,'0');$('recTimer').textContent=`${m}:${s}`;},1000);
+    $('recState').textContent='Recording…';$('recDot').style.display='inline-block';
+    $('btnRecord').disabled=true;$('btnStop').disabled=false;
+    $('btnAnalyzeRec').disabled=true;$('recPreview').style.display='none';
+  }catch{alert('Microphone access denied or unavailable.');}
+});
+
+$('btnStop').addEventListener('click',()=>{
+  if(mediaRec&&mediaRec.state!=='inactive'){
+    mediaRec.stop();mediaRec.stream.getTracks().forEach(t=>t.stop());
+  }
+  $('btnRecord').disabled=false;$('btnStop').disabled=true;
+});
+
+/* Convert any blob to WAV so librosa can always decode it on Windows */
+async function blobToWav(blob){
+  const arrayBuf = await blob.arrayBuffer();
+  const ctx = new OfflineAudioContext(1, 1, 44100); // temp ctx just to decode
+  let decoded;
+  try {
+    const decCtx = new (window.AudioContext||window.webkitAudioContext)();
+    decoded = await decCtx.decodeAudioData(arrayBuf);
+    await decCtx.close();
+  } catch(e) {
+    throw new Error('Could not decode recorded audio: ' + e.message);
+  }
+  // Render to offline context (mono, 16kHz — enough for librosa)
+  const SR = 16000;
+  const offCtx = new OfflineAudioContext(1, Math.ceil(decoded.duration * SR), SR);
+  const src = offCtx.createBufferSource();
+  src.buffer = decoded;
+  src.connect(offCtx.destination);
+  src.start(0);
+  const rendered = await offCtx.startRendering();
+  // Encode to WAV
+  const pcm = rendered.getChannelData(0);
+  const buf = new ArrayBuffer(44 + pcm.length * 2);
+  const view = new DataView(buf);
+  function wr(o,s){view.setUint8(o,s.charCodeAt(0));}
+  function w16(o,v){view.setUint16(o,v,true);}
+  function w32(o,v){view.setUint32(o,v,true);}
+  "RIFF".split('').forEach((c,i)=>wr(i,c));
+  w32(4, 36 + pcm.length*2);
+  "WAVE".split('').forEach((c,i)=>wr(8+i,c));
+  "fmt ".split('').forEach((c,i)=>wr(12+i,c));
+  w32(16,16); w16(20,1); w16(22,1); w32(24,SR); w32(28,SR*2); w16(32,2); w16(34,16);
+  "data".split('').forEach((c,i)=>wr(36+i,c));
+  w32(40, pcm.length*2);
+  for(let i=0;i<pcm.length;i++){
+    const s=Math.max(-1,Math.min(1,pcm[i]));
+    view.setInt16(44+i*2, s<0?s*0x8000:s*0x7FFF, true);
+  }
+  return new Blob([buf],{type:'audio/wav'});
+}
+
+$('btnAnalyzeRec').addEventListener('click',async()=>{
+  if(!recBlob)return;
+  const btn=$('btnAnalyzeRec');setLoading(btn,true);
+  try{
+    const wavBlob = await blobToWav(recBlob);
+    const fd=new FormData();fd.append('file',wavBlob,'recording.wav');
+    const r=await fetch(`${API}/api/detect/audio`,{method:'POST',body:fd});
+    renderResult(await r.json());
+  }catch(e){renderResult({success:false,error:e.message||'Could not reach API. Is Flask running?'});}
+  setLoading(btn,false,'Analyse Recorded Audio');
+});
+</script>
+</body>
+</html>
